@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.plots/
+.renv/
+.trial_markdown.*
+.renv.lock
+.original/
