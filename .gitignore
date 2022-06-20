@@ -2,8 +2,11 @@
 .Rhistory
 .RData
 .Ruserdata
-.plots/
-.renv/
-.trial_markdown.*
-.renv.lock
-.original/
+plots/**
+renv/**
+new/**
+*.html
+*.pdf
+*.docx
+renv.lock
+original/**
