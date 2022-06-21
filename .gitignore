@@ -10,3 +10,5 @@ new/**
 *.docx
 renv.lock
 original/**
+tidy_psmelt_code.R
+prev*

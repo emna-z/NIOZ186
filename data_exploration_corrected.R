@@ -306,11 +306,45 @@ Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.da
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for Nylon in offshore station") 
 
+###########focus on wooden stirrers per timepoints##
+t <- read_csv("./new/tidyPE462.csv")
+controls <- t %>% filter(material =="wood")
+kruskal.test()
+
+
 
 # NMDS --------------------------------------------------------------------
+library(mia)
+library(phyloseq)
+library(ggpubr)
 gen <- read_csv("./new/genus_PE462.csv")
 length(unique(gen$Genus))
 length(unique(gen$detail))
-gen %>% filter(detail %nin% c("mock_DNA","Glass_fiber_no_C05_0", "Neg_PCR", "Glass_fiber_no_C13_0" )) %>% 
-  select(detail, Genus, Genus_rep_rel_abund) %>% mutate(across(c(Genus),factor)) %>% 
-  pivot_wider(names_from = detail, values_from = Genus_rep_rel_abund, values_fill = 0)
+gen_count <- gen %>% filter(detail %nin% c("mock_DNA","Glass_fiber_no_C05_0", "Neg_PCR", "Glass_fiber_no_C13_0" )) %>% 
+  select(detail, Genus, Genus_rep_rel_abund) %>% mutate(across(c(Genus),factor)) %>%
+  pivot_wider(names_from = detail, values_from = Genus_rep_rel_abund, values_fill = 0) %>% column_to_rownames(var = "Genus") %>% as.matrix()
+gen_metadata <- gen %>% select( "detail","station","timepoint.days.","treatment", "polymer","pol_photo_station","polymer_station",
+                                "polymer_photo","material") %>% filter(detail %nin% c("mock_DNA","Glass_fiber_no_C05_0", "Neg_PCR", 
+                                "Glass_fiber_no_C13_0" )) %>% distinct() %>% column_to_rownames(var = "detail")
+
+pseq <- merge_phyloseq(otu_table(gen_count, taxa_are_rows = T), sample_data(gen_metadata))
+ord <- ordinate(pseq, method = "NMDS", k = 2, "bray",trymax = 150)
+library(vegan)
+library(pals)
+stressplot(ord)
+head(ord$points)
+p <- plot_ordination(pseq, ord, color="polymer", shape="station")
+p <- p + geom_point(size=4, alpha=0.75)
+p <- p + scale_colour_brewer(type="qual", palette="Set2")
+p + ggtitle("NMDS on dissimilarity matrix")
+palpal <- palette("Alphabet")
+
+pseq_wood <- subset_samples(pseq, material == "wood")
+ord <- ordinate(pseq_wood, method = "NMDS", k = 2, "bray",trymax = 150)
+stressplot(ord)
+head(ord$points)
+p <- plot_ordination(pseq_wood, ord, color="timepoint.days.", shape="station")
+p <- p + geom_point(size=4, alpha=0.75)
+p <- p + scale_colour_brewer(type="qual", palette=1)
+p + ggtitle("NMDS on dissimilarity matrix")
+

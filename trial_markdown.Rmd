@@ -3,12 +3,15 @@ title: "data exploration PE462"
 author: "Emna Zeghal"
 date: '2022-06-15'
 output:
-  word_document:
-    toc: yes
-  pdf_document:
-    toc: yes
+#  word_document:
+#    toc: yes
+#  pdf_document:
+#    toc: yes
   html_document:
     toc: yes
+    toc_float: true
+    toc_depth: 6
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -17,20 +20,288 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Purpose
 the project referred to as NIOZ186 is basically the exploration of Illumina sequencing data (primers 515F-926R). The amplified DNA was extracted from the surface of plastic films (polymers: PE, PET, PS and Nylon) incubated in 5L bottles of seawater collected from 2 different station (offshore vs coastal) in the North Sea.  
-Raw sequencing data is accessible via [link_from_NIOZ_DOI]  
+The files used here are the resulting asv table and taxonomy table obtained via CASCABEL (v4.6.2) (Abdala Asbun et al., 2020).    
+Raw sequencing data, original asv table and taxonomy table are accessible via [link_from_NIOZ_DOI].  
 
-*This is my humble trial at "good practices for reproducible science"*  
 
-## Analysis  
-First, I started by creating a project. Then, I imported the resulting datasets after pre-processing for each polymer in the working project directory.  
-A common first step is to load the libraries to be used throughout the analysis. 
-```{r, results='hide', message=FALSE}
+## Pre-processing  
+First, I started by creating a R project and initializing a renv lock. After downloading the several needed packages (from CRAN or bioconductor). Those need to be loaded.  
+```{r load libraries, results='hide', message=FALSE}
+library(phyloseq)
+library(grid)
 library(tidyverse)
+library(vegan)
+library(rmarkdown)
+library(knitr)
+library(DESeq2)
+library(microbiome)
+library(ggpubr)
+library(FactoMineR)
+library(factoextra)
+library(usedist)
+library(heatmaply)
 library(Hmisc)
+```  
+
+```{r set seed}
+#For random iterations
+set.seed(42)
 ```
+### Importing data:  
+Raw data is imported in the right class to merge as a phyloseq object.  
+```{r Data import}
+tax <- as.matrix(read.delim("./original/representative_seq_set_tax_assignments.txt", row.names = 1, na.strings = "NA"))
+tax <- tax_table(tax)
+otu <- as.matrix(read.delim("./original/asv_table.txt", row.names = 1))
+otu <- otu_table(otu, taxa_are_rows = T)
+map <- sample_data(read.delim("./original/mapPE462.txt", row.names = 1, na.strings = c("NA", "")))
+physeq_object <-  merge_phyloseq(otu, tax, map)
+```  
+
+```{r physeq_object, collapse=TRUE}
+physeq_object
+```  
+
+```{r basic information,collapse=TRUE}
+##############basic information##############
+summarize_phyloseq(physeq_object)
+ntaxa(physeq_object)
+nsamples(physeq_object) 
+head(sample_names(physeq_object))
+head(taxa_names(physeq_object))
+rank_names(physeq_object)
+head(sample_sums(physeq_object))
+head(taxa_sums(physeq_object))
+min(sample_sums(physeq_object))
+#eliminate singletons
+physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE) 
+```  
+
+```{r getting rid of wonky taxonomy assignments, collapse=TRUE }
+##########getting rid of wonky taxonomy assignments ###########
+get_taxa_unique(physeq_object, "Kingdom") # unassigned in kingdoms
+ #let's eliminate those otus
+physeq_object <- subset_taxa(physeq_object, !is.na(Kingdom) & !Kingdom%in% c("", "Unassigned"))
+get_taxa_unique(physeq_object, "Kingdom") 
+# let's check the Phyla, there's "NA"
+any(is.na(get_taxa_unique(physeq_object, "Phylum")))
+physeq_object <- subset_taxa(physeq_object, !is.na(Phylum) & !Phylum%in% c("NA"," NA" )) 
+#let's verify
+any(is.na(get_taxa_unique(physeq_object, "Phylum")))
+#number of Phyla
+length(get_taxa_unique(physeq_object,"Phylum"))
+#getting rid of Chloroplast & Mitochondria
+any((get_taxa_unique(physeq_object, "Order") == "Chloroplast"))
+any((get_taxa_unique(physeq_object, "Family") == "Mitochondria"))
+physeq_object <- subset_taxa(physeq_object, !Order%in% c("Chloroplast")) 
+physeq_object <- subset_taxa(physeq_object, !Family%in% c("Mitochondria"))
+any((get_taxa_unique(physeq_object, "Order") == "Chloroplast" & !is.na((get_taxa_unique(physeq_object, "Order")))))
+any((get_taxa_unique(physeq_object, "Family") == "Mitochondria")& !is.na(get_taxa_unique(physeq_object, "Family")))
+#no singletons
+physeq_object <- prune_taxa(taxa_sums(physeq_object) > 1, physeq_object) 
+``` 
+
+```{r All to unassigned}
+#loops to redefine weird taxonomy to a single common character string "unassigned" 
+taxo <- as.data.frame(physeq_object@tax_table)
+
+
+for (i in 1:nrow(taxo)) {
+  for (y in 1:ncol(taxo)) {
+    if 
+    (is.na(taxo[i,y]) || any(str_detect(taxo[i,y], c("uncultured","Uncultured","metagenome", "Metagenome","unknown", "Unknown","NA")))) {
+      taxo[i,y] <- "unassigned" }
+  }
+}
+
+taxo <- tax_table(as.matrix(taxo))
+```  
+
+```{r Final phyloseq object}
+physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
+```
+
+### Alpha diversity:  
+Let's calculate Alpha diversity indexes. I am using here two different packages. One is enough. I was just curious if the output would be the same.   
+
+```{r Alpha_div, results='hide', message=FALSE}
+############### alpha div ###################
+#microbiome package
+summarize_phyloseq(physeq_object)
+alpha_tab <-microbiome::alpha(physeq_object, index = "all")
+alpha_tab <- alpha_tab %>% cbind(data.frame(physeq_object@sam_data))
+#write_csv(alpha_tab, file = "./alpha_div_indexes_microbiome_package.csv")
+#phyloseq package
+alpha <- phyloseq::estimate_richness(physeq_object)
+#write_csv(alpha, file = "./alpha_div_phyloseq.csv")
+```
+
+### A focus on the wooden stirrers controls:  
+Let's try to determine if the Alpha diversity between the different bottles of incubation for the wooden stirrers are really different (for each timepoint and station of course). Combinig those to "create" replicates could be interesting.  
+
+#### Alpha diversity graphic glimpse:  
+
+```{r wooden stirrers tab with alpha div}
+m <- alpha_tab %>% filter(material =="wood")
+```
+```{r boxplot alpha di wooden stirrers, fig.fullwidth=TRUE, fig.align ='center'}
+p <- ggboxplot(m, x = "timepoint.days.", y = "evenness_simpson",
+               fill = "timepoint.days.", palette ="Dark2",
+              add = "jitter", size = 1) +facet_wrap(~station)
+p <- ggpar(p,legend = "none",xlab ="incubation time (days)", title = "Simpson eveness index")
+
+p2 <- ggboxplot(m, x = "timepoint.days.", y = "diversity_shannon",
+               fill = "timepoint.days.", palette ="Dark2",
+              add = "jitter", size = 1) +facet_wrap(~station)
+p2 <- ggpar(p2,legend = "none",xlab ="incubation time (days)", title = "Shannon diversity index")
+ggarrange (p, p2, ncol=2)
+
+```  
+
+#### Kruskal wallis tests for each station/timepoint combination:  
+
+##### coastal station / day 5:  
+```{r kruskal C05/day5, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "5")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "5")))
+```
+##### coastal station / day 10:  
+```{r kruskal C05/day10, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "10")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "10")))
+```  
+
+##### coastal station / day 45:  
+```{r kruskal C05/day45, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "45")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C05") %>% filter(timepoint.days. == "45")))
+```  
+None of the tests above showed significant differences (p<0.05). Combining wooden stirrers for each timepoint might be considered.  
+
+##### offshore station / day 5:  
+```{r kruskal C13/day5, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "5")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "5")))
+```
+##### offshore station / day 10:  
+```{r kruskal C13/day10, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "10")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "10")))
+```  
+##### offshore station / day 30:  
+```{r kruskal C13/day30, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "30")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "30")))
+```  
++ coastal station / day 45:  
+```{r kruskal C13/day45, collapse=TRUE}
+kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "45")))  
+kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "45")))
+```  
+None of the tests above showed significant differences (p<0.05). Combining wooden stirrers for each timepoint might be considered.  
+According to the results above. wooden stirrers might be pooled for each station/timepoint combination.  
+
+## Data transformation:  
+Now, I am transforming my data in a "tidy" way to make use of the function implemented in the tidyverse. I am mainly referring to grouping functions that will allow quick calculations of mean abundances and standard deviation for replicates without writing loops.  
+For that I am going to use the tidy_psmelt function (written by mikemc github user). tidy_psmelt source code is saved in the project repository.  
+
+### Tidying the data:
+```{r tidy data}
+source("./tidy_psmelt.R")
+tidy_physeq_asv <- tidy_psmelt(physeq_object)
+#append genus to the species name
+tidy_physeq_asv$Species <- if_else(!tidy_physeq_asv$Species=="unassigned", str_c(tidy_physeq_asv$Genus," ",tidy_physeq_asv$Species), tidy_physeq_asv$Species)
+#correct colum detail for wood to be able to merge the "replicates"
+tidy_physeq_asv$detail <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_physeq_asv$material,"_",tidy_physeq_asv$station,"_",tidy_physeq_asv$timepoint.days.), tidy_physeq_asv$detail)
+#write_csv(tidy_physeq_asv, "./new/tidyPE462")
+```  
+### Abundances calculations:  
+I am going to calculate the mean abundances of each agglomerated taxonomic rank per sample and per replicates.  
+```{r abundances calc}
+#tidy_physeq_asv <- read.csv("./analysis/tidyPE462.csv")
+
+t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abundance / sum(Abundance)) %>% #relative abundance of each asv per sample
+  ungroup() %>%
+  group_by(detail) %>% mutate( rep_rel_abund = Sample_rel_abund / sum(Sample_rel_abund)) %>% #relative abundance of each asv per number of samples in replicates
+  ungroup() %>% 
+  #Kingdom_section
+  group_by(Sample, Kingdom) %>% 
+  mutate(Kingdom_rel_abund_Sample = sum(Sample_rel_abund)) %>%  #Kingdom relative abundance per sample 
+  ungroup() %>% 
+  group_by(detail, Kingdom) %>% 
+  mutate(Kingdom_st_dev_abund_samples = sd(Kingdom_rel_abund_Sample)) %>% # standard dev of Kingdom relative abundances between replicates of column detail 
+  mutate(Kingdom_rep_rel_abund = sum(rep_rel_abund)) %>% #Kingdom relative abundance per samples of desc 
+  ungroup() %>%
+  #Phylum_section
+  group_by(Sample, Phylum) %>% 
+  mutate(Phylum_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Phylum) %>% 
+  mutate(st_dev_Phylum_abund = sd(Phylum_rel_abund_Sample)) %>%
+  mutate(Phyla_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup() %>% 
+  #Class_section
+  group_by(Sample, Class) %>% 
+  mutate(Class_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Class) %>% 
+  mutate(st_dev_Class_abund = sd(Class_rel_abund_Sample)) %>%
+  mutate(Class_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup() %>% 
+  #Order_section
+  group_by(Sample, Order) %>% 
+  mutate(Order_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Order) %>% 
+  mutate(st_dev_Order_abund = sd(Order_rel_abund_Sample)) %>%
+  mutate(Order_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup() %>% 
+  #Family_section
+  group_by(Sample, Family) %>% 
+  mutate(Family_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Family) %>% 
+  mutate(st_dev_Family_abund = sd(Family_rel_abund_Sample)) %>%
+  mutate(Family_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup() %>% 
+  #Genus_section
+  group_by(Sample, Genus) %>% 
+  mutate(Genus_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Genus) %>% 
+  mutate(st_dev_Genus_abund = sd(Genus_rel_abund_Sample)) %>%
+  mutate(Genus_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup() %>% 
+  #Species_section
+  group_by(Sample, Species) %>% 
+  mutate(Species_rel_abund_Sample = sum(Sample_rel_abund)) %>%
+  ungroup() %>% 
+  group_by(detail, Species) %>% 
+  mutate(st_dev_Species_abund = sd(Species_rel_abund_Sample)) %>%
+  mutate(Species_rep_rel_abund = sum(rep_rel_abund)) %>%
+  ungroup()  
+
+polymer_station <-  str_c(t3$polymer, "_", t3$station)
+polymer_photo <- str_c(t3$polymer, "_", t3$treatment)
+pol_photo_station <- str_c(polymer_photo, "_", t3$station)
+
+t3 <- t3 %>% 
+  add_column(polymer_station, .before ="Kingdom") %>% 
+  add_column(polymer_photo, .before ="Kingdom") %>% 
+  add_column(pol_photo_station, .before ="Kingdom")
+
+#write_csv(t3, "./new/tidyPE462_abundances_calc_w.csv")  
+
+```
+
+
+## Community analysis  
+I imported the resulting datasets after pre-processing for each polymer in the working project directory.  
+A common first step is to load the libraries to be used throughout the analysis. In here the packages used are already loaded (Tidyverse, phyloseq and hmisc).  
+
 ### Polyethylene:  
 
-#### **1. Importing data:**    
+#### 1. Importing data:    
 The datset is imported then split into several subsets according to diffrent parameters (UV treatment and location)   
 ```{r, results='hide', message=FALSE}
 ###############data import#########
@@ -48,7 +319,7 @@ os_uv <- os %>% filter(treatment %in% c("UV"))
 os_nuv <- os %>% filter(treatment %in% c("no_UV"))
 os_n <- os %>% filter(treatment %in% c("no"))
 ```
-#### **2. Determining top genera:**  
+#### 2. Determining top genera:  
 here I determined the top 5 genera for each subset of the coastal station and each timepoint.  
 ```{r, results='hide', message=FALSE}
 coast_uv_g5 <- coast_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -136,7 +407,7 @@ plot(pe_os_top5)
 
 ### Polyethylene Tetraphtalate:  
 
-#### **1. Importing data:**    
+#### 1. Importing data:   
 Same as previous polymer.      
 ```{r, results='hide', message=FALSE}
 ###############data import#########
@@ -154,7 +425,7 @@ os_uv <- os %>% filter(treatment %in% c("UV"))
 os_nuv <- os %>% filter(treatment %in% c("no_UV"))
 os_n <- os %>% filter(treatment %in% c("no"))
 ```
-#### **2. Determining top genera:**  
+#### 2. Determining top genera:  
 here I determined the top 5 genera for each subset of the coastal station and each timepoint.  
 ```{r, results='hide', message=FALSE}
 coast_uv_g5 <- coast_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -227,7 +498,7 @@ plot(pet_os_top5)
 
 ### Polystyrene:  
 
-#### **1. Importing data:**    
+#### 1. Importing data:    
 Same as previous polymer.      
 ```{r, results='hide', message=FALSE}
 ###############data import#########
@@ -245,7 +516,7 @@ os_uv <- os %>% filter(treatment %in% c("UV"))
 os_nuv <- os %>% filter(treatment %in% c("no_UV"))
 os_n <- os %>% filter(treatment %in% c("no"))
 ```
-#### **2. Determining top genera:**  
+#### 2. Determining top genera:  
 here I determined the top 5 genera for each subset of the coastal station and each timepoint.  
 ```{r, results='hide', message=FALSE}
 coast_uv_g5 <- coast_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -316,7 +587,7 @@ plot(ps_os_top5)
 
 ### Nylon:  
 
-#### **1. Importing data:**    
+#### 1. Importing data:    
 Same as previous polymer.      
 ```{r, results='hide', message=FALSE}
 ###############data import#########
@@ -334,7 +605,7 @@ os_uv <- os %>% filter(treatment %in% c("UV"))
 os_nuv <- os %>% filter(treatment %in% c("no_UV"))
 os_n <- os %>% filter(treatment %in% c("no"))
 ```
-#### **2. Determining top genera:**  
+#### 2. Determining top genera:  
 here I determined the top 5 genera for each subset of the coastal station and each timepoint.  
 ```{r, results='hide', message=FALSE}
 coast_uv_g5 <- coast_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -403,3 +674,8 @@ Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.da
   ggtitle(label = "Top genera abundance for Nylon in offshore station") 
 plot(Nylon_os_top5)
 ```
+## Conclusion:  
+```{r stop knit}
+
+knitr::knit_exit()
+``` 
