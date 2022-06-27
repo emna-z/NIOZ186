@@ -1,17 +1,17 @@
 ---
 title: "data exploration PE462"
 author: "Emna Zeghal"
-date: '2022-06-15'
+date: "`r Sys.Date()`"
 output:
-#  word_document:
-#    toc: yes
-#  pdf_document:
-#    toc: yes
   html_document:
     toc: yes
     toc_float: true
     toc_depth: 6
     code_folding: show
+#  pdf_document:
+ #   toc: yes
+#  word_document:
+    #toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -41,6 +41,10 @@ library(factoextra)
 library(usedist)
 library(heatmaply)
 library(Hmisc)
+library(kableExtra)
+library(RColorBrewer)
+library(vegan)
+library(pals)
 ```  
 
 ```{r set seed}
@@ -120,13 +124,15 @@ taxo <- tax_table(as.matrix(taxo))
 ```{r Final phyloseq object}
 physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
 ```
-
+```{r plot prevalence phyla, message=FALSE, echo=FALSE, fig.pos="center", size= 10, fig.align = 'center', fig.cap = "Prevalence of all detected Phyla"}
+microbiome::plot_taxa_prevalence(physeq_object, "Phylum")+ theme(legend.position = "none")
+```
 ### Alpha diversity:  
-Let's calculate Alpha diversity indexes. I am using here two different packages. One is enough. I was just curious if the output would be the same.   
+Let's calculate Alpha diversity indexes. I am using here two different packages. One is enough. I was just curious if the output would be the same.  
 
 ```{r Alpha_div, results='hide', message=FALSE}
 ############### alpha div ###################
-#microbiome package
+#microbiome package alpha div indexes
 summarize_phyloseq(physeq_object)
 alpha_tab <-microbiome::alpha(physeq_object, index = "all")
 alpha_tab <- alpha_tab %>% cbind(data.frame(physeq_object@sam_data))
@@ -136,8 +142,12 @@ alpha <- phyloseq::estimate_richness(physeq_object)
 #write_csv(alpha, file = "./alpha_div_phyloseq.csv")
 ```
 
+```{r alpha div tab, echo=FALSE}
+knitr::kable(alpha_tab,"html", caption = "Alpha diversity idexes table", digits = 2) %>% kableExtra::scroll_box(width = "8tt00px", height = "300px") 
+```
+
 ### A focus on the wooden stirrers controls:  
-Let's try to determine if the Alpha diversity between the different bottles of incubation for the wooden stirrers are really different (for each timepoint and station of course). Combinig those to "create" replicates could be interesting.  
+Let's try to determine if the Alpha diversity between the different bottles of incubation for the wooden stirrers are really different (for each timepoint and station of course). Combining those to "create" replicates could be interesting.  
 
 #### Alpha diversity graphic glimpse:  
 
@@ -193,7 +203,7 @@ kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") 
 kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "30")))  
 kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "30")))
 ```  
-+ coastal station / day 45:  
+##### offshore station / day 45:  
 ```{r kruskal C13/day45, collapse=TRUE}
 kruskal.test(diversity_shannon ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "45")))  
 kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") %>% filter(timepoint.days. == "45")))
@@ -201,7 +211,7 @@ kruskal.test(evenness_simpson ~ polymer, data = (m %>% filter (station =="C13") 
 None of the tests above showed significant differences (p<0.05). Combining wooden stirrers for each timepoint might be considered.  
 According to the results above. wooden stirrers might be pooled for each station/timepoint combination.  
 
-## Data transformation:  
+## Data transformation  
 Now, I am transforming my data in a "tidy" way to make use of the function implemented in the tidyverse. I am mainly referring to grouping functions that will allow quick calculations of mean abundances and standard deviation for replicates without writing loops.  
 For that I am going to use the tidy_psmelt function (written by mikemc github user). tidy_psmelt source code is saved in the project repository.  
 
@@ -218,7 +228,7 @@ tidy_physeq_asv$detail <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_p
 ### Abundances calculations:  
 I am going to calculate the mean abundances of each agglomerated taxonomic rank per sample and per replicates.  
 ```{r abundances calc}
-#tidy_physeq_asv <- read.csv("./analysis/tidyPE462.csv")
+tidy_physeq_asv <- read.csv("./new/tidyPE462.csv")
 
 t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abundance / sum(Abundance)) %>% #relative abundance of each asv per sample
   ungroup() %>%
@@ -283,16 +293,25 @@ t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abunda
 
 polymer_station <-  str_c(t3$polymer, "_", t3$station)
 polymer_photo <- str_c(t3$polymer, "_", t3$treatment)
-pol_photo_station <- str_c(polymer_photo, "_", t3$station)
+pol_photo_station <- str_c(t3$polymer_photo, "_", t3$station)
 
 t3 <- t3 %>% 
   add_column(polymer_station, .before ="Kingdom") %>% 
   add_column(polymer_photo, .before ="Kingdom") %>% 
   add_column(pol_photo_station, .before ="Kingdom")
 
+t3$polymer_station <- if_else(t3$material=="wood", str_c(t3$material,"_",t3$station), t3$polymer_station)
+t3$polymer_photo <- if_else(t3$material=="wood", str_c(t3$material,"_",t3$treatment), t3$polymer_photo)
+t3$pol_photo_station <- if_else(t3$material=="wood", str_c(t3$material,"_",t3$treatment,"_",t3$station), t3$pol_photo_station)
+
+
 #write_csv(t3, "./new/tidyPE462_abundances_calc_w.csv")  
 
 ```
+```{r tidy data table, echo=FALSE}
+knitr::kable(t3[1:10,],caption = "First 10 rows of the tidy transformed datset", digits = 2)%>%  kableExtra::scroll_box(width = "800px", height = "300px") 
+```
+
 
 
 ## Community analysis  
@@ -302,15 +321,15 @@ A common first step is to load the libraries to be used throughout the analysis.
 ### Polyethylene:  
 
 #### 1. Importing data:    
-The datset is imported then split into several subsets according to diffrent parameters (UV treatment and location)   
-```{r, results='hide', message=FALSE}
-###############data import#########
+The datset is imported then split into several subsets according to different parameters (UV treatment and location)   
+```{r import and split PE, results='hide', message=FALSE}
+#PE_analysis==============
 pe <- read_csv("./new/PE462_PE.csv")
 pe <- pe %>% filter(Genus %nin% c("unassigned", "Unassigned"))
-############subset per station##########
+    ######subset per station#########
 coast <- pe %>% filter(station %in% c("C05"))
 os <- pe %>% filter(station %in% c("C13"))
-#####subset stations per treatment#####
+    #####subset stations per treatment######
 coast_uv <- coast %>% filter(treatment %in% c("UV"))
 coast_nuv <- coast %>% filter(treatment %in% c("no_UV"))
 coast_n <- coast %>% filter(treatment %in% c("no"))
@@ -321,7 +340,7 @@ os_n <- os %>% filter(treatment %in% c("no"))
 ```
 #### 2. Determining top genera:  
 here I determined the top 5 genera for each subset of the coastal station and each timepoint.  
-```{r, results='hide', message=FALSE}
+```{r top genera PE, results='hide', message=FALSE}
 coast_uv_g5 <- coast_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
   mutate(across(c(timepoint.days.),factor))%>% distinct() %>% 
   group_by(timepoint.days.) %>% slice_max(order_by = Genus_rep_rel_abund, n = 5)
@@ -333,43 +352,34 @@ coast_n_g5 <- coast_n %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_ab
   group_by(timepoint.days.) %>% slice_max(order_by = Genus_rep_rel_abund, n = 5)
 ```
 These are the "total" top genera:  
-```{r} 
+```{r, collapse=TRUE} 
 unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 ```
 Now back to station subsets to extract the top genera for each  
-```{r, results='hide', message=FALSE}
+```{r}
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PE_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
+```
 
-pe_coast_top5 <- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+```{r heatmap pe coast, results='hide', message=FALSE}
+pe_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-  ggtitle(label = "Top genera abundance for PE in coastal station") 
-```
-```{r, results='hide', message=FALSE}
-coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PE_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
-  distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
+  ggtitle(label = "Top genera abundance for PE in coastal station")
 
-pe_coast_top5 <- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
-  theme_bw() +
-  theme(strip.placement = "outside",
-        plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_blank(),
-        strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-  ggtitle(label = "Top genera abundance for PE in coastal station") 
 ```
-```{r pe_coast_top5, echo=FALSE}
-plot(pe_coast_top5)
-```
+```{r plot heatmap pe coast, message=FALSE, fig.align='center'}
+pe_coast_top5
+```  
+  
+  
+
 Now same logic for offshore station.  
 ```{r, results='hide', message=FALSE}
 os_uv_g5 <- os_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -383,24 +393,26 @@ os_n_g5 <- os_n %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, s
   group_by(timepoint.days.) %>% slice_max(order_by = Genus_rep_rel_abund, n = 5)
 
 ```
-```{r} 
+```{r top5 os pe} 
 unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 ```
 ```{r, results='hide', message=FALSE}
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PE_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 ```
 ```{r pe_os_top5, echo=FALSE}
 pe_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for PE in offshore station") 
+```
+```{r plot heatmap pe offshore, message=FALSE, fig.align='center'}
 plot(pe_os_top5)
 ```
 
@@ -446,19 +458,21 @@ Now back to station subsets to extract the top genera for each
 
 ```{r, results='hide', message=FALSE}
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PET_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 ```
 ```{r pet_coast_top5, echo=FALSE}
-pet_coast_top5 <- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+pet_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for PET in coastal station") 
+```
+```{r plot heatmap pet coast, message=FALSE, fig.align='center'}
 plot(pet_coast_top5)
 ```
 
@@ -479,19 +493,21 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 ```
 ```{r, results='hide', message=FALSE}
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PET_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 ```
 ```{r pet_os_top5, echo=FALSE}
 pet_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-  ggtitle(label = "Top genera abundance for PET in offshore station") 
+  ggtitle(label = "Top genera abundance for PET in coastal station") 
+```
+```{r plot heatmap pet offshore, message=FALSE, fig.align='center'}
 plot(pet_os_top5)
 ```
 
@@ -536,21 +552,23 @@ unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 Now back to station subsets to extract the top genera for each  
 ```{r, results='hide', message=FALSE}
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PS_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 ```
 ```{r ps_coast_top5, echo=FALSE}
-ps_coast_top5 <- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+ps_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for PS in coastal station") 
+```
+```{r plot heatmap ps coast, message=FALSE, fig.align='center'}
 plot(ps_coast_top5)
-```  
+``` 
 
 ```{r, results='hide', message=FALSE}
 os_uv_g5 <- os_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
@@ -569,19 +587,21 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 ```
 ```{r, results='hide', message=FALSE}
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PS_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 ```
 ```{r ps_os_top5, echo=FALSE}
 ps_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for PS in offshore station") 
+```
+```{r plot heatmap ps offshore, message=FALSE, fig.align='center'}
 plot(ps_os_top5)
 ```
 
@@ -626,22 +646,24 @@ Now back to station subsets to extract the top genera for each
 
 ```{r, results='hide', message=FALSE}
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "Nylon_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 ```
 ```{r Nylon_coast_top5,echo=FALSE}
-Nylon_coast_top5 <- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+Nylon_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for Nylon in coastal station") 
+```
+```{r plot heatmap nylon coast, message=FALSE, fig.align='center'}
 plot(Nylon_coast_top5)
 ```
- 
+
 ```{r, results='hide', message=FALSE}
 os_uv_g5 <- os_uv %>% select(timepoint.days.,detail, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
   mutate(across(c(timepoint.days.),factor))%>% distinct() %>% 
@@ -664,18 +686,60 @@ os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_
 ```
 ```{r Nylon_os_top5, echo=FALSE}
 Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for Nylon in offshore station") 
-plot(Nylon_os_top5)
 ```
-## Conclusion:  
-```{r stop knit}
+```{r plot heatmap nylon offshore, message=FALSE, fig.align='center'}
+plot(Nylon_os_top5)
+```  
 
-knitr::knit_exit()
+### Beta Diversity:  
+I performed an nmds on the Genus dataset.
+```{r physeq gen, results='hide'}
+gen <- read_csv("./new/genus_PE462.csv")
+gen_count <- gen %>% filter(detail %nin% c("mock_DNA","Glass_fiber_no_C05_0", "Neg_PCR", "Glass_fiber_no_C13_0" )) %>% 
+  select(detail, Genus, Genus_rep_rel_abund) %>% mutate(across(c(Genus),factor)) %>%
+  pivot_wider(names_from = detail, values_from = Genus_rep_rel_abund, values_fill = 0) %>% column_to_rownames(var = "Genus") %>% as.matrix()
+gen_metadata <- gen %>% select( "detail","station","timepoint.days.","treatment", "polymer","pol_photo_station","polymer_station",
+                                "polymer_photo","material") %>% filter(detail %nin% c("mock_DNA","Glass_fiber_no_C05_0", "Neg_PCR", 
+                                "Glass_fiber_no_C13_0" )) %>% distinct() %>% column_to_rownames(var = "detail")
+pseq <- merge_phyloseq(otu_table(gen_count, taxa_are_rows = T), sample_data(gen_metadata))
+```
+```{r gen ord }
+ord <- ordinate(pseq, method = "NMDS", k = 2, "bray",trymax = 150)
+```
+```{r stressplot, fig.align='center'}
+stressplot(ord)
+```  
+The Stressplot above indicates that two dimensions aren't enough to represent data variation.  
+Below, ord$points shows the coordinates of the points on the two axes MDS1 and MDS2.  
+```{r gen ord coordinates }
+head(ord$points)
+```
+```{r plot nmds 1,  message=FALSE, fig.align='center', echo=FALSE}
+p <- plot_ordination(pseq, ord, color="polymer", shape="station") + geom_point(size=4, alpha=0.75)+ 
+  scale_colour_brewer(type="qual", palette="Dark2") + ggtitle("NMDS on dissimilarity matrix for dataset agglomerated on genus level")
+p
+```
+
+
+```{r plot nmds 2,  message=FALSE, fig.align='center', echo=FALSE}
+
+p2 <- plot_ordination(pseq, ord, color="polymer_station", shape="timepoint.days.") + geom_point(size=4, alpha=0.75)+ 
+  scale_colour_brewer(type="qual", palette="Paired") + ggtitle("NMDS on dissimilarity matrix for dataset agglomerated on genus level")
+p2
+```
+
+
+
+## Conclusion:  
+```{r stop }
+
+#knitr::knit_exit()
 ``` 

@@ -1,6 +1,6 @@
 library(tidyverse)
 library(Hmisc)
-
+library("RColorBrewer")
 #PE_analysis==============
 pe <- read_csv("./new/PE462_PE.csv")
 pe <- pe %>% filter(Genus %nin% c("unassigned", "Unassigned"))
@@ -35,14 +35,14 @@ unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PE_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+  mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 #coast_top5_n <- coast_top5_n %>% 
 
 
 pe_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -66,12 +66,12 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PE_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 pe_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -112,14 +112,14 @@ unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PET_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 #coast_top5_n <- coast_top5_n %>% 
 
 
 pet_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -143,12 +143,12 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PET_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 pet_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -187,14 +187,14 @@ unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PS_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 #coast_top5_n <- coast_top5_n %>% 
 
 
 ps_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -218,12 +218,12 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "PS_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 ps_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -262,14 +262,14 @@ unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "Nylon_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(coast_nuv_g5$Genus,coast_uv_g5$Genus, coast_n_g5$Genus))))
 #coast_top5_n <- coast_top5_n %>% 
 
 
 Nylon_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -293,12 +293,12 @@ unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus) )
 
 ####back to stations datasets to plot only top5 taxa for each condition
 os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_rel_abund, st_dev_Genus_abund) %>% 
-  mutate( polymer_photo = replace(polymer_photo, polymer_photo == "Nylon_wood_no", "ctrl_wood")) %>% mutate(across(c(timepoint.days.),factor)) %>% 
+   mutate(across(c(timepoint.days.),factor)) %>% 
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradient(name = "relative abundance",low = "#FFFFFF", high = "#483D8B")+
-  facet_grid(~ polymer_photo, switch = "x", scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
@@ -333,10 +333,12 @@ library(vegan)
 library(pals)
 stressplot(ord)
 head(ord$points)
-p <- plot_ordination(pseq, ord, color="polymer", shape="station")
-p <- p + geom_point(size=4, alpha=0.75)
-p <- p + scale_colour_brewer(type="qual", palette="Set2")
-p + ggtitle("NMDS on dissimilarity matrix")
+p <- plot_ordination(pseq, ord, color="polymer", shape="station") + geom_point(size=4, alpha=0.75)+ 
+  scale_colour_brewer(type="qual", palette="Dark2") + ggtitle("NMDS on dissimilarity matrix for dataset agglomerated on genus level")
+p
+p2 <- plot_ordination(pseq, ord, color="polymer_station", shape="timepoint.days.") + geom_point(size=4, alpha=0.75)+ 
+  scale_colour_brewer(type="qual", palette="Paired") + ggtitle("NMDS on dissimilarity matrix for dataset agglomerated on genus level")
+p2
 palpal <- palette("Alphabet")
 
 pseq_wood <- subset_samples(pseq, material == "wood")

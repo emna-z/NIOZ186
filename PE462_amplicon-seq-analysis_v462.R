@@ -29,7 +29,7 @@ library("factoextra")
 library(usedist)
 library("heatmaply")
 library(Hmisc)
-
+library(kableExtra)
 
 #####data_import######
 tax <- as.matrix(read.delim("./original/representative_seq_set_tax_assignments.txt", row.names = 1, na.strings = "NA"))
@@ -55,13 +55,6 @@ physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE) #no si
 min(taxa_sums(physeq_object))
 #physeq_object <-  subset_samples(physeq_object,(sample_sums(physeq_object) >= 1000))
 max(sample_sums(physeq_object))
-
-#####subset T3 & merge ####
-#sub1 <- subset_samples(physeq_object, timepoint.days. %in% c("T1", "T6"))
-#sub2 <- subset_samples(physeq_object, surface=="negative_c")
-#physeq_object <- merge_phyloseq(sub1, sub2)
-#physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE) #no singletons
-
 ##########getting rid of wonky taxonomy assignments ###########
 get_taxa_unique(physeq_object, "Kingdom") # unassigned in Domains
 physeq_object <- subset_taxa(physeq_object, !is.na(Kingdom) & !Kingdom%in% c("", "Unassigned")) #let's eliminate those otus
@@ -98,29 +91,31 @@ physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
 
 
 ############### alpha div ###################
+
+#microbiome package
 summarize_phyloseq(physeq_object)
 alpha_tab <-microbiome::alpha(physeq_object, index = "all")
-#write_csv(alpha_tab, file = "./analysis/alpha_div_indexes_microbiome_package.csv")
-metad <- data.frame(physeq_object@sam_data) 
-metad$Shannon <- alpha_tab$diversity_shannon 
-metad$evenness_simpson <- alpha_tab$evenness_simpson 
-#m <- subset_samples(physeq_object, timepoint.days. %in% c("T1", "T6"))
+alpha_tab <- alpha_tab %>% cbind(data.frame(physeq_object@sam_data))
+#write_csv(alpha_tab, file = "./new/alpha_div_indexes_microbiome_package.csv")
+alpha_tab <- read_csv("./new/alpha_div_indexes_microbiome_package.csv")
+#phyloseq package
+a_div <- phyloseq::estimate_richness(physeq_object)
+#write_csv(a_div, file = "./new/alpha_div_phyloseq.csv")
 
 #p <- ggboxplot(metad, x = "material", y = "evenness_simpson",
 #               color = "material", palette =c("#5FB233FF" ,"#6A7F93FF" ,"#F57206FF" ,"#EB0F13FF", "#8F2F8BFF", "#1396DBFF"),
 #              add = "jitter", shape = "treatment", size = 1) + facet_wrap(~timepoint.days.)
 #p
 
+alpha <- read_csv("./new/alpha_div_indexes_microbiome_package.csv")
 
-a <- phyloseq::estimate_richness(physeq_object)
-#write_csv(a, file = "./analysis/alpha_div_phyloseq.csv")
 plot <- plot_richness(physeq_object, "material", "treatment", measures="Chao1")+facet_grid(treatment~timepoint.days.)
 plot + geom_boxplot(data=plot$data, aes(material,value,color=NULL), alpha=0.3)+ labs(title = "Alpha Diversity", subtitle ="Chao1", x =NULL , y = NULL )+theme_light()
 
 plot <- plot_richness(physeq_object, "polymer", "treatment", measures="Simpson")+facet_grid(treatment~station)
 plot + geom_boxplot(data=plot$data, aes(polymer,value,color=NULL), alpha=0.3)+ labs(title = "Alpha Diversity", subtitle ="Simpson", x =NULL , y = NULL )+theme_light()
 
-microbiome::plot_taxa_prevalence(physeq_object, "Phylum")+ theme(legend.position = "none") #prevalence
+microbiome::plot_taxa_prevalence(physeq_object, "Kingdom")+ theme(legend.position = "none") #prevalence
 
 
 #########merge samples per surface all replicates together##########
@@ -224,9 +219,6 @@ t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abunda
   mutate(Genus_rep_rel_abund = sum(rep_rel_abund)) %>%
   ungroup() %>% 
   #Species_section
-  
-  ###correcting species by combinig genus+species#  easy fix idea merge gen/spec in new col & replace in followng paragraph  
-  
   group_by(Sample, Species) %>% 
   mutate(Species_rel_abund_Sample = sum(Sample_rel_abund)) %>%
   ungroup() %>% 
@@ -237,29 +229,32 @@ t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abunda
 
 polymer_station <-  str_c(t3$polymer, "_", t3$station)
 polymer_photo <- str_c(t3$polymer, "_", t3$treatment)
-pol_photo_station <- str_c(polymer_photo, "_", t3$station)
+pol_photo_station <- str_c(t3$polymer_photo, "_", t3$station)
 
 t3 <- t3 %>% 
   add_column(polymer_station, .before ="Kingdom") %>% 
   add_column(polymer_photo, .before ="Kingdom") %>% 
   add_column(pol_photo_station, .before ="Kingdom")
 
+t3$polymer_station <- if_else(t3$material=="wood", str_c(t3$material,"_",t3$station), t3$polymer_station)
+t3$polymer_photo <- if_else(t3$material=="wood", str_c(t3$material), t3$polymer_photo)
+t3$pol_photo_station <- if_else(t3$material=="wood", str_c(t3$material,"_",t3$station), t3$pol_photo_station)
+
 #write_csv(t3, "./new/tidyPE462_abundances_calc_w.csv")  
 
-#t3 <- read_csv("./analysis/.csv")
+#t <- read_csv("./new/tidyPE462_abundances_calc_w.csv")
 
 mock <- t3 %>% filter(polymer %in% c("mock_DNA"))
 mock$Genus
 D10_45 <- t3 %>% filter(timepoint.days.%in% c("10","45")) %>% filter(polymer %nin% c("Neg_PCR","mock_DNA" ))
 #write_csv(D10_45, "./analysis/D10_45.csv")
 ##############tables for each rank#############
-#t3 <- read_csv("./analysis/.csv")
+t3 <- read_csv("./new/tidyPE462_abundances_calc_w.csv")
+t3$polymer <- if_else(t3$material=="wood", str_c(t3$material), t3$polymer)
 Kingdom <- t3  %>%  select(station,timepoint.days.,treatment,polymer,pol_photo_station, polymer_station,polymer_photo,
                            material, detail,Kingdom, Kingdom_rep_rel_abund,Kingdom_st_dev_abund_samples)%>% 
   distinct() 
-#write_csv(Kingdom, "./analysis/Kingdom_PE462.csv")
-
-#Kingdom <- Kingdom %>% filter ( timepoint.days. %in% c("T1", "T6")) #%>% mutate(timepoint.days. = ifelse(material =="negative_c", "T1", timepoint.days.))
+#write_csv(Kingdom, "./new/Kingdom_PE462.csv")
 
 #colors_vector_to_personalize#
 CPCOLS <- c("#199442", "#ED1F1F", "#F5EE2C", "#B636D6", "#3D68E0", "#EBA53D", "#00688B", "#00EE76", "#CD9B9B", "#00BFFF", "#FFF68F", "#FF7F50", "#68228B", "#ADFF2F", "#CD0000", "#0000FF", "#CD9B1D", "#FF34B3", "#BBFFFF", "#191970") 

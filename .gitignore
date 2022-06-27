@@ -3,12 +3,10 @@
 .RData
 .Ruserdata
 plots/**
-renv/**
 new/**
 *.html
 *.pdf
 *.docx
-renv.lock
 original/**
 tidy_psmelt_code.R
 prev*
