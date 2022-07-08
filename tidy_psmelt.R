@@ -1,3 +1,4 @@
+##many thanks to Michael McLaren for writing this function and sharing it https://github.com/joey711/phyloseq/issues/1041
 tidy_psmelt <-
 function(physeq) {
   ### INSERT Initial variable and rank name checking and modding from `psmelt`

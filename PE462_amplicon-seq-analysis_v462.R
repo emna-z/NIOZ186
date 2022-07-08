@@ -11,31 +11,38 @@
 #                                                          #
 ##%######################################################%##
 
-
-
-
 ################Packages_init###################
+library(tidyverse)
 library(phyloseq)
 library(grid)
-library(tidyverse)
+library(scales)
 library(vegan)
 library(rmarkdown)
 library(knitr)
-library("DESeq2")
-library("microbiome")
+library(DESeq2)
+library(microbiome)
 library(ggpubr)
-library("FactoMineR")
-library("factoextra")
+library(FactoMineR)
+library(factoextra)
 library(usedist)
-library("heatmaply")
+library(heatmaply)
 library(Hmisc)
 library(kableExtra)
 
 #####data_import######
-tax <- as.matrix(read.delim("./original/representative_seq_set_tax_assignments.txt", row.names = 1, na.strings = "NA"))
-tax <- tax_table(tax)
-otu <- as.matrix(read.delim("./original/asv_table.txt", row.names = 1))
-otu <- otu_table(otu, taxa_are_rows = T)
+tax1 <- as.matrix(read.delim("./original/representative_seq_set_tax_assignments.txt", row.names = 1, na.strings = "NA"))
+tax2 <- read.delim("./original/representative_seq_set_tax_assignments_unpaired.txt", row.names = 1, na.strings = "NA")
+rownames(tax2) <- paste0("asv.",(length(rownames(tax1))+1):(length(rownames(tax1))+length(rownames(tax2))))
+tax2 ['Species']= NA
+tax2 <- as.matrix(tax2)
+tax <- rbind(tax1,tax2) %>% tax_table()
+otu1 <- as.matrix(read.delim("./original/asv_table.txt", row.names = 1))
+otu2 <- read.delim("./original/asv_table_unpaired.txt", row.names = 1)
+rownames(otu2) <- rownames(tax2)
+samples_missing <- colnames(otu1)[c(which(colnames(otu1) %nin% colnames(otu2)))]
+for (i in 1:length(samples_missing)) {otu2[samples_missing[i]] <- 0 }
+otu2 <- as.matrix (otu2)
+otu <-rbind(otu1,otu2) %>%  otu_table(taxa_are_rows = T)
 map <- sample_data(read.delim("./original/mapPE462.txt", row.names = 1, na.strings = c("NA", "")))
 physeq_object = merge_phyloseq(otu, tax, map)                 
 
@@ -43,35 +50,23 @@ physeq_object = merge_phyloseq(otu, tax, map)
 ####basic_info##############
 summarize_phyloseq(physeq_object)
 ntaxa(physeq_object)
-nsamples(physeq_object)  ###there's 71 samples in the OTU table and 74 in the mapping file any idea why? never mind, I found in the report that 3 of them had nothing whatsoever
+nsamples(physeq_object)
 sample_names(physeq_object)
 taxa_names(physeq_object)
 rank_names(physeq_object)
 sample_sums(physeq_object)
 taxa_sums(physeq_object)
-min(sample_sums(physeq_object)) #it says 7 sequences here. In the report it says 8, not much of a difference but wondering how to deal wih a sample like that
-
+min(sample_sums(physeq_object)) 
 physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE) #no singletons
 min(taxa_sums(physeq_object))
-#physeq_object <-  subset_samples(physeq_object,(sample_sums(physeq_object) >= 1000))
 max(sample_sums(physeq_object))
 ##########getting rid of wonky taxonomy assignments ###########
-get_taxa_unique(physeq_object, "Kingdom") # unassigned in Domains
-physeq_object <- subset_taxa(physeq_object, !is.na(Kingdom) & !Kingdom%in% c("", "Unassigned")) #let's eliminate those otus
-get_taxa_unique(physeq_object, "Kingdom") # all good now
-get_taxa_unique(physeq_object, "Phylum") # let's check the Phyla, there's "NA"
-physeq_object <- subset_taxa(physeq_object, !is.na(Phylum) & !Phylum%in% c("NA"," NA" )) 
-get_taxa_unique(physeq_object, "Phylum")
-length(get_taxa_unique(physeq_object,"Phylum"))
-any((get_taxa_unique(physeq_object, "Order") == "Chloroplast"))
-any((get_taxa_unique(physeq_object, "Family") == "Mitochondria"))
-physeq_object <- subset_taxa(physeq_object, !Order%in% c("Chloroplast")) 
-physeq_object <- subset_taxa(physeq_object, !Family%in% c("Mitochondria"))
+get_taxa_unique(physeq_object, "Kingdom") 
+physeq_object <- subset_taxa(physeq_object, !is.na(Kingdom) & !Kingdom%in% c("", "Unassigned"))
+get_taxa_unique(physeq_object, "Kingdom")
+get_taxa_unique(physeq_object, "Phylum") 
 
-physeq_object <- prune_taxa(taxa_sums(physeq_object) > 1, physeq_object) #no singletons
-physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE)#no singletons
-
-#loops to redefine weird taxonomy to a single common character string "unassigned" 
+###rid of NA in taxonomy
 taxo <- as.data.frame(physeq_object@tax_table)
 
 
@@ -88,7 +83,14 @@ taxo <- tax_table(as.matrix(taxo))
 
 physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
 
+###rid of chloroplast & Mitochodria
+any((get_taxa_unique(physeq_object, "Order") == "Chloroplast"))
+any((get_taxa_unique(physeq_object, "Family") == "Mitochondria"))
+physeq_object <- subset_taxa(physeq_object, !Order%in% c("Chloroplast")) 
+physeq_object <- subset_taxa(physeq_object, !Family%in% c("Mitochondria"))
 
+physeq_object <- prune_taxa(taxa_sums(physeq_object) > 1, physeq_object) #no singletons
+physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE)#no singletons
 
 ############### alpha div ###################
 
@@ -119,43 +121,6 @@ microbiome::plot_taxa_prevalence(physeq_object, "Kingdom")+ theme(legend.positio
 
 
 #########merge samples per surface all replicates together##########
-
-#getting the phyloseq object as tidy tibble 
-tidy_psmelt <- function(physeq) {
-  ### INSERT Initial variable and rank name checking and modding from `psmelt`
-  # Get the OTU table with taxa as rows
-  rankNames = rank_names(physeq, FALSE)
-  sampleVars = sample_variables(physeq, FALSE) 
-  otutab <- otu_table(physeq)
-  if (!taxa_are_rows(otutab)) {
-    otutab <- t(otutab)
-  }
-  # Convert the otu table to a tibble in tidy form
-  tb <- otutab %>% 
-    as("matrix") %>%
-    tibble::as_tibble(rownames = "OTU") %>%
-    tidyr::gather("Sample", "Abundance", -OTU)
-  # Add the sample data if it exists
-  if (!is.null(sampleVars)) {
-    sam <- sample_data(physeq) %>%
-      as("data.frame") %>% 
-      tibble::as_tibble(rownames = "Sample")
-    tb <- tb %>%
-      dplyr::left_join(sam, by = "Sample")
-  }
-  # Add the tax table if it exists
-  if (!is.null(rankNames)) {
-    tax <- tax_table(physeq) %>%
-      as("matrix") %>%
-      tibble::as_tibble(rownames = "OTU")
-    tb <- tb %>%
-      dplyr::left_join(tax, by = "OTU")
-  }
-  tb %>%
-    arrange(desc(Abundance))
-  # Optional conversion to a data frame doesn't affect the speed/memory usage
-  # %>% as.data.frame
-}
 source("./tidy_psmelt.R")
 tidy_physeq_asv <- tidy_psmelt(physeq_object)
 tidy_physeq_asv$Species <- if_else(!tidy_physeq_asv$Species=="unassigned", str_c(tidy_physeq_asv$Genus," ",tidy_physeq_asv$Species), tidy_physeq_asv$Species)

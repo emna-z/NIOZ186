@@ -41,7 +41,7 @@ coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genu
 
 
 pe_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -70,7 +70,7 @@ os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 pe_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -118,7 +118,7 @@ coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genu
 
 
 pet_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -147,7 +147,7 @@ os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 pet_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -193,7 +193,7 @@ coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genu
 
 
 ps_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -222,7 +222,7 @@ os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 ps_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -268,7 +268,7 @@ coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genu
 
 
 Nylon_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -297,7 +297,7 @@ os_top5 <- os %>% select(timepoint.days.,detail,polymer_photo, Genus, Genus_rep_
   distinct()%>% filter(Genus %in% (unique(c(os_nuv_g5$Genus,os_uv_g5$Genus, os_n_g5$Genus))))
 
 Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.5))+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -305,6 +305,12 @@ Nylon_os_top5<- ggplot(data = os_top5, mapping = aes(y = Genus, x = timepoint.da
         axis.title.y = element_blank(),
         strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for Nylon in offshore station") 
+
+
+
+ggarrange(pe_coast_top5, pe_os_top5, pet_coast_top5, pet_os_top5, ncol = 2, nrow = 2, common.legend = T, legend = "left")
+ggarrange(ps_coast_top5, ps_os_top5, Nylon_coast_top5, Nylon_os_top5, ncol = 2, nrow = 2, common.legend = T)
+
 
 ###########focus on wooden stirrers per timepoints##
 t <- read_csv("./new/tidyPE462.csv")
@@ -350,3 +356,5 @@ p <- p + geom_point(size=4, alpha=0.75)
 p <- p + scale_colour_brewer(type="qual", palette=1)
 p + ggtitle("NMDS on dissimilarity matrix")
 
+source("./tidy_psmelt.R")
+melt <- tidy_psmelt(pseq)

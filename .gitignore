@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-plots/**
+plots/
 new/**
 *.html
 *.pdf
@@ -10,3 +10,6 @@ new/**
 original/**
 tidy_psmelt_code.R
 prev*
+PE462_amplicon-seq-analysis_v462.R
+data_exploration.R
+split_by_polymer.Rmd
