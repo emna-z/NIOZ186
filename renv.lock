@@ -464,6 +464,17 @@
         "tidyr"
       ]
     },
+    "Polychrome": {
+      "Package": "Polychrome",
+      "Version": "1.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "466f3a16617d769c773ca1f1ea878055",
+      "Requirements": [
+        "colorspace",
+        "scatterplot3d"
+      ]
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.5.1",
@@ -1280,6 +1291,27 @@
         "rlang"
       ]
     },
+    "emmeans": {
+      "Package": "emmeans",
+      "Version": "1.7.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1154980a9e0122dcff12975b5fe826ce",
+      "Requirements": [
+        "estimability",
+        "mvtnorm",
+        "numDeriv",
+        "xtable"
+      ]
+    },
+    "estimability": {
+      "Package": "estimability",
+      "Version": "1.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4276eec98bbd2a0b4a472506bec2b458",
+      "Requirements": []
+    },
     "evaluate": {
       "Package": "evaluate",
       "Version": "0.15",
@@ -1316,10 +1348,10 @@
     },
     "farver": {
       "Package": "farver",
-      "Version": "2.1.0",
+      "Version": "2.1.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c98eb5133d9cb9e1622b8691487f11bb",
+      "Hash": "8106d78941f34855c440ddb946b8f7a5",
       "Requirements": []
     },
     "fastmap": {
@@ -1566,6 +1598,20 @@
         "ggplot2"
       ]
     },
+    "ggthemes": {
+      "Package": "ggthemes",
+      "Version": "4.2.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "617fb2c300f68e8b1ba21043fba88fd7",
+      "Requirements": [
+        "ggplot2",
+        "purrr",
+        "scales",
+        "stringr",
+        "tibble"
+      ]
+    },
     "glue": {
       "Package": "glue",
       "Version": "1.6.2",
@@ -1618,6 +1664,24 @@
         "rlang",
         "tibble",
         "vctrs"
+      ]
+    },
+    "grafify": {
+      "Package": "grafify",
+      "Version": "2.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "594fda3f8deb9d10251d3ae4cdc919c7",
+      "Requirements": [
+        "Hmisc",
+        "car",
+        "emmeans",
+        "ggplot2",
+        "lme4",
+        "lmerTest",
+        "magrittr",
+        "purrr",
+        "tidyr"
       ]
     },
     "gridExtra": {
@@ -1966,6 +2030,19 @@
         "nloptr"
       ]
     },
+    "lmerTest": {
+      "Package": "lmerTest",
+      "Version": "3.1-3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f04948de84602afc23bfa9f5427e954d",
+      "Requirements": [
+        "MASS",
+        "ggplot2",
+        "lme4",
+        "numDeriv"
+      ]
+    },
     "locfit": {
       "Package": "locfit",
       "Version": "1.5-9.5",
@@ -2173,6 +2250,14 @@
       "Requirements": [
         "colorspace"
       ]
+    },
+    "mvtnorm": {
+      "Package": "mvtnorm",
+      "Version": "1.1-3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "7a7541cc284cb2ba3ba7eae645892af5",
+      "Requirements": []
     },
     "nlme": {
       "Package": "nlme",
@@ -2893,10 +2978,10 @@
     },
     "stringi": {
       "Package": "stringi",
-      "Version": "1.7.6",
+      "Version": "1.7.8",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "bba431031d30789535745a9627ac9271",
+      "Hash": "a68b980681bcbc84c7a67003fa796bfb",
       "Requirements": []
     },
     "stringr": {
@@ -3261,6 +3346,14 @@
         "jsonlite",
         "magrittr"
       ]
+    },
+    "wesanderson": {
+      "Package": "wesanderson",
+      "Version": "0.3.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "42f92f1e9ef722355959ec1f7c459636",
+      "Requirements": []
     },
     "withr": {
       "Package": "withr",
