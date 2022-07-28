@@ -17,3 +17,4 @@ rel_abund_by_ranks.R
 *.pptx
 PE462_data_prep.R
 plots_div.R
+ignored/
