@@ -12,5 +12,8 @@ tidy_psmelt_code.R
 prev*
 PE462_amplicon-seq-analysis_v462.R
 data_exploration.R
-split_by_polymer.Rmd
-trial_markdown.Rmd
+*.Rmd
+rel_abund_by_ranks.R
+*.pptx
+PE462_data_prep.R
+plots_div.R

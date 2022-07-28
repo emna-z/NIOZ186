@@ -23,7 +23,7 @@ p_os <-ggplot(alpha_tab_os,aes(x = reorder(timepoint.days., as.numeric(timepoint
   labs(title="Alpha diversity open water station",x="incubation time (days)", y = "Simpson eveness index")
 fig1 <- ggarrange(p_coast,p_os, common.legend = T) 
 #ggexport(fig,filename = "simpson_index.pdf")
-fig1
+#fig1
 
 sh_coast <-ggplot(alpha_tab_coast,aes(x = reorder(timepoint.days., as.numeric(timepoint.days.)), y = diversity_shannon, fill=treatment))+
   geom_boxplot(position=position_dodge(1))+scale_y_continuous(limits = c(0,6))  +scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"))+ theme_minimal()+
@@ -36,5 +36,5 @@ sh_os <-ggplot(alpha_tab_os,aes(x = reorder(timepoint.days., as.numeric(timepoin
   labs(title="Alpha diversity open water station",x="incubation time (days)", y = "Shannon diversity index")
 fig2 <- ggarrange(sh_coast,sh_os, common.legend = T) 
 #ggexport(fig,filename = "shannon_index.pdf")
-fig2
+#fig2
 

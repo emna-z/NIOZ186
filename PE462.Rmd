@@ -411,14 +411,17 @@ coast_top5 <- coast %>% select(timepoint.days.,detail,polymer_photo, Genus, Genu
 ```
 
 ```{r heatmap pe coast, results='hide', message=FALSE}
-pe_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = Genus, x = timepoint.days., fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance",colours = c("#FDFEFE","#A1DAB4" ,"#41B6C4" ,"#225EA8"), limits=c(0,0.6))+
+no_white <- mf_get_pal(n = c( 1,30), pal = c("Light Grays","Burg" ), rev =c(F,F))
+
+pe_coast_top5<- ggplot(data = coast_top5, mapping = aes(y = fct_relevel(Genus,rev), x = timepoint.days., fill = Genus_rep_rel_abund)) + 
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance", colours = no_white, limits=c(0,0.7))+
   facet_grid(~ polymer_photo, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_bw() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
-        strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+        axis.text.y = element_text(face = "italic"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#FFFFFF")) +
   ggtitle(label = "Top genera abundance for PE in coastal station")
 
 ```

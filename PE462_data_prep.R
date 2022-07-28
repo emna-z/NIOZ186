@@ -109,7 +109,8 @@ tidy_physeq_asv <- tidy_psmelt(physeq_object)
 tidy_physeq_asv <- tidy_physeq_asv %>% filter(!Phylum == "unassigned") %>% filter(timepoint.days. %nin% c("15"))
 tidy_physeq_asv$Species <- if_else(!tidy_physeq_asv$Species=="unassigned", str_c(tidy_physeq_asv$Genus," ",tidy_physeq_asv$Species), tidy_physeq_asv$Species)
 tidy_physeq_asv$detail <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_physeq_asv$material,"_",tidy_physeq_asv$station,"_",tidy_physeq_asv$timepoint.days.), tidy_physeq_asv$detail)
-any(tidy_physeq_asv$detail == wood_detail)
+tidy_physeq_asv$polymer <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_physeq_asv$material), tidy_physeq_asv$polymer)
+
 
 #write_csv(tidy_physeq_asv, "./new/tidyPE462_v5.csv")
 tidy_physeq_asv <- read.csv("./new/tidyPE462_v5.csv")
@@ -176,7 +177,8 @@ t3 <- tidy_physeq_asv  %>% group_by(Sample) %>% mutate(Sample_rel_abund = Abunda
   ungroup()  
 
 
-####final complete tidy Table#####
+####final complete tidy Table with extra variables combination#####
+
 polymer_station <-  str_c(t3$polymer, "_", t3$station)
 polymer_photo <- str_c(t3$polymer, "_", t3$treatment)
 pol_photo_station <- str_c(t3$polymer, "_", t3$treatment, "_", t3$station)
