@@ -38,12 +38,12 @@ pseq <- pseq %>%
 
 
 tse <- mia::makeTreeSummarizedExperimentFromPhyloseq(pseq)
-tse_rel <- transformSamples(tse, method = "relabundance")
-tse_nmds <- runNMDS(tse_rel, FUN = vegan::vegdist, method = "bray", name = "NMDS_BC", exprs_values = "relabundance")
-p <- plotReducedDim(tse_nmds, "NMDS_BC", colour_by = "timepoint.days.", shape_by = "polymer", 
+tse_rel <- mia::transformSamples(tse, method = "relabundance")
+tse_nmds <- mia::runNMDS(tse_rel, FUN = vegan::vegdist, method = "bray", name = "NMDS_BC", exprs_values = "relabundance")
+p <- scater::plotReducedDim(tse_nmds, "NMDS_BC", colour_by = "timepoint.days.", shape_by = "polymer", 
                     text_by = "station", point_size = 4) +
-  ggtitle(label = "NMDS on overall dataset", subtitle = "distance: Bray-Curtis") 
-#p
+  ggtitle(label = "NMDS on overall dataset", subtitle = "distance: Bray-Curtis") + facet_grid(~station)
+p
 tse_mds <- runMDS(tse_rel, FUN = vegan::vegdist, name = "MDS_BC", exprs_values = "relabundance")
 e <- attr(reducedDim(tse_mds, "MDS_BC"), "eig");
 rel_eig <- e/sum(e[e>0])          

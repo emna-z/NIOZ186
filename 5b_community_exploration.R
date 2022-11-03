@@ -6,7 +6,7 @@ library(ggtext)
 library(glue)
 library(ggpubr)
 
-no_white <- mf_get_pal(n = c( 1,30), pal = c("Light Grays","Burg" ), rev =c(F,F))
+no_white <- mf_get_pal(n = c( 1,30), pal = c("Grays","Mako" ), rev =c(F,F))
 #PE_analysis==============
 pe <- read_csv("./new/PE462_PE_v5.csv")
 pe <- pe %>% filter(Genus %nin% c("unassigned", "Unassigned"))

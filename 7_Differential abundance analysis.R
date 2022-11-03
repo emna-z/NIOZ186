@@ -7,6 +7,7 @@ library(MicrobiomeStat)
 library(knitr)
 library(tidyverse)
 library(ANCOMBC)
+library(Hmisc)
 
 set.seed(42)
 ##physeq
@@ -21,15 +22,19 @@ pseq <- pseq %>%
   subset_taxa(!Phylum %in% c("unassigned")) %>% 
   subset_samples(station %in% c("C05", "C13")) %>%
   subset_samples(timepoint.days. %nin% c("15","0"))
-
+pseq_os <- pseq %>% 
+  subset_samples(station %in% c("C05"))
+pseq_coast <- pseq %>% 
+  subset_samples(station %in% c("C13"))
 #TreeSE see https://microbiome.github.io/OMA/differential-abundance.html
 tse <- mia::makeTreeSummarizedExperimentFromPhyloseq(pseq)
-tse_os <- tse[ ,colData(tse)$station == "C05"]
-colData(tse_os)$station <- fct_drop(colData(tse_os)$station, "C13")
-tse_os <- subsetByPrevalentTaxa(tse_os, detection = 0, prevalence = 0.1)
-tse_coast <- tse[ ,colData(tse)$station == "C13"]
-colData(tse_coast)$station <- fct_drop(colData(tse_coast)$station, "C05")
-tse_coast <- subsetByPrevalentTaxa(tse_coast, detection = 0, prevalence = 0.1)
+tse_os <- mia::makeTreeSummarizedExperimentFromPhyloseq(pseq_os)
+# tse_os <- subsetByPrevalentTaxa(tse_os, detection = 0, prevalence = 0.1)
+tse_coast <- mia::makeTreeSummarizedExperimentFromPhyloseq(pseq_coast)
+# tse_coast <- subsetByPrevalentTaxa(tse_coast, detection = 0, prevalence = 0.1)
+# tse_coast <- tse[ ,colData(tse)$station == "C13"]
+# colData(tse_coast)$station <- fct_drop(colData(tse_coast)$station, "C05")
+
 
 
 #ALDEX2

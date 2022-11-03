@@ -49,39 +49,50 @@ physeq_object = merge_phyloseq(otu, tax, map)
 
 ####basic_info##############
 #summarize_phyloseq(physeq_object)
-ntaxa(physeq_object)
-nsamples(physeq_object)
-sample_names(physeq_object)
-taxa_names(physeq_object)
-rank_names(physeq_object)
-sample_sums(physeq_object)
-taxa_sums(physeq_object)
-min(sample_sums(physeq_object)) 
+# ntaxa(physeq_object)
+# nsamples(physeq_object)
+# sample_names(physeq_object)
+# taxa_names(physeq_object)
+# rank_names(physeq_object)
+# sample_sums(physeq_object)
+# taxa_sums(physeq_object)
+# min(sample_sums(physeq_object)) 
 physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE) #no singletons
 min(taxa_sums(physeq_object))
-max(sample_sums(physeq_object))
+# max(sample_sums(physeq_object))
 ##########getting rid of wonky taxonomy assignments ###########
 get_taxa_unique(physeq_object, "Kingdom") 
 physeq_object <- subset_taxa(physeq_object, !is.na(Kingdom) & !Kingdom%in% c("", "Unassigned"))
 get_taxa_unique(physeq_object, "Kingdom")
-get_taxa_unique(physeq_object, "Phylum") 
+# get_taxa_unique(physeq_object, "Phylum") 
 
 ###rid of NA in taxonomy
-taxo <- as.data.frame(physeq_object@tax_table)
+# taxo <- as.data.frame(physeq_object@tax_table)
+# 
+# 
+# for (i in 1:nrow(taxo)) {
+#   for (y in 1:ncol(taxo)) {
+#     if 
+#     (is.na(taxo[i,y]) || any(str_detect(taxo[i,y], c("uncultured","Uncultured","metagenome", "Metagenome","unknown", "Unknown","NA")))) {
+#       taxo[i,y] <- "unassigned" }
+#   }
+# }
+# 
+# taxo <- tax_table(as.matrix(taxo))
+# 
+# 
+# physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
 
-
-for (i in 1:nrow(taxo)) {
-  for (y in 1:ncol(taxo)) {
-    if 
-    (is.na(taxo[i,y]) || any(str_detect(taxo[i,y], c("uncultured","Uncultured","metagenome", "Metagenome","unknown", "Unknown","NA")))) {
-      taxo[i,y] <- "unassigned" }
+only_unassigned <- function(x) {
+  if_else(x %in% c("uncultured","Uncultured","metagenome","Metagenome","unknown","Unknown","NA"),"unassigned", x)
   }
-}
 
+taxo <- as.data.frame(physeq_object@tax_table)%>% 
+  replace(is.na(.),"unassigned") %>% 
+  mutate( across(.cols = everything(), ~only_unassigned(.)))
 taxo <- tax_table(as.matrix(taxo))
-
-
 physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
+
 
 ###rid of chloroplast & Mitochodria
 any((get_taxa_unique(physeq_object, "Order") == "Chloroplast"))
@@ -108,7 +119,8 @@ alpha <- read_csv("./new/alpha_div_indexes_microbiome_package.csv")
 source("./tidy_psmelt.R")
 tidy_physeq_asv <- tidy_psmelt(physeq_object)
 tidy_physeq_asv <- tidy_physeq_asv %>% filter(!Phylum == "unassigned") %>% filter(timepoint.days. %nin% c("15"))
-tidy_physeq_asv$Species <- if_else(!tidy_physeq_asv$Species=="unassigned", str_c(tidy_physeq_asv$Genus," ",tidy_physeq_asv$Species), tidy_physeq_asv$Species)
+tidy_physeq_asv$Species <- if_else((!tidy_physeq_asv$Genus=="unassigned"&!tidy_physeq_asv$Species=="unassigned"), 
+                                   str_c(tidy_physeq_asv$Genus," ",tidy_physeq_asv$Species), str_c(tidy_physeq_asv$Genus," sp."))
 tidy_physeq_asv$detail <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_physeq_asv$material,"_",tidy_physeq_asv$station,"_",tidy_physeq_asv$timepoint.days.), tidy_physeq_asv$detail)
 tidy_physeq_asv$polymer <- if_else(tidy_physeq_asv$material=="wood", str_c(tidy_physeq_asv$material), tidy_physeq_asv$polymer)
 
