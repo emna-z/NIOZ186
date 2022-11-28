@@ -97,10 +97,11 @@ physeq_object <- merge_phyloseq(physeq_object@otu_table, taxo, map)
 ###rid of chloroplast & Mitochodria
 any((get_taxa_unique(physeq_object, "Order") == "Chloroplast"))
 any((get_taxa_unique(physeq_object, "Family") == "Mitochondria"))
-physeq_object <- subset_taxa(physeq_object, !Order%in% c("Chloroplast")) 
-physeq_object <- subset_taxa(physeq_object, !Family%in% c("Mitochondria"))
+physeq_object <- physeq_object %>% 
+  subset_taxa(!Order%in% c("Chloroplast")) %>%
+  subset_taxa(!Family%in% c("Mitochondria"))
 
-physeq_object <- prune_taxa(taxa_sums(physeq_object) > 1, physeq_object) #no singletons
+# physeq_object <- prune_taxa(taxa_sums(physeq_object) > 1, physeq_object) #no singletons
 physeq_object <- filter_taxa(physeq_object, function(x) sum(x) > 1, TRUE)#no singletons
 
 ############### alpha div ###################

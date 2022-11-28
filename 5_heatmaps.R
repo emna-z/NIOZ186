@@ -1,3 +1,23 @@
+library("preregr")
+# library("mia")
+# library("MicrobiomeStat")
+library(vegan)
+library(scater)
+library(phyloseq)
+library(tidyverse)
+library(Hmisc)
+library("metagMisc")
+library(ALDEx2)
+# library(finalfit)
+# library(knitr)
+library(tidyverse)
+library(Hmisc)
+library("RColorBrewer")
+library(mapsf)
+library(ggtext)
+library(glue)
+library(ggpubr)
+
 k <- read_csv("./new/Kingdom_PE462_v5.csv")
 p <- read_csv("./new/phyla_PE462_v5.csv")
 o <-read_csv("./new/order_PE462_v5.csv")
@@ -21,7 +41,7 @@ g_all <- g_all %>% filter(timepoint.days.%nin% c("mock_DNA","Neg_PCR")) %>%
 
 top5 <- g_all%>% 
   mutate(across(c(timepoint.days., detail),factor))%>% distinct() %>% 
-  group_by(detail) %>% slice_max(order_by = Genus_rep_rel_abund, n = 3)
+  group_by(detail) %>% slice_max(order_by = Genus_rep_rel_abund, n = 5)
 top5 <- top5 %>% 
   filter(Genus %nin% c("unassigned"))
 
@@ -55,25 +75,33 @@ nylonuv0 <-  coast %>% filter(polymer %in% c("Glass_fiber")) %>%
 wood0 <-  coast %>% filter(polymer %in% c("Glass_fiber")) %>% 
   mutate(polymer = str_replace_all(polymer,c("Glass_fiber"="wood")))
 coast2 <- coast %>% filter(polymer %nin% c("Glass_fiber")) %>%
-  bind_rows (pe0, peuv0, pet0, petuv0, ps0, psuv0, nylon0, nylonuv0, wood0)
+  bind_rows (pe0, peuv0, pet0, petuv0, ps0, psuv0, nylon0, nylonuv0, wood0) %>% 
+  mutate_if(is.character,as.factor)
 
 x <- seq(0, 1, length.out = 200)
 library("ggh4x")
-
-c <- ggplot(data = coast2, mapping = aes(y = fct_relevel(Genus,rev), 
-            x = fct_relevel(timepoint.days.,  c("0","5", "10","30","45")), fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance", colours = no_white, limits=c(0,0.75), breaks = x )+
-  facet_nested(~ polymer + treatment, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
+breaks <- levels(coast2$Genus)
+hcb <- read_lines("../Hydrocarbon degraders.txt")
+pdb <- blablabla_to_file_of_plasticDB
+condition <- if_else(breaks %in% intersect(pdb,hcb) , "#a45b2e", #orange
+                     (if_else(breaks %in% pdb , "#2ea45b", (if_else(breaks %in% hcb , "#5b2ea4", "black")))))
+c <- ggplot(data = coast2, mapping = aes( x = fct_relevel(timepoint.days.,  c("0","5", "10","30","45")),
+                                          y = fct_relevel(Genus,rev), fill = Genus_rep_rel_abund)) +
+  geom_tile() +
+  scale_fill_gradientn(name = "RA", colours = no_white, limits=c(0,0.75) )+ 
+  facet_grid( ~ polymer+treatment) + xlab(label = "incubation time (days)") +
+  scale_y_discrete("Genus", breaks = breaks) +
   theme_minimal() +
   theme(strip.placement = "outside",
         plot.title = element_text(hjust = 0.5),
         axis.title.y = element_blank(),
-        axis.text.y = element_text(face = "bold.italic"),
+        axis.text.y = element_text(face = "bold.italic", colour = condition),
         axis.text.x = element_text(face = "bold"),
-        strip.background = element_rect(fill = "#FFFFFF", color = "#585858"), strip.text.x = element_text(face = "bold"),
-        legend.title = element_text(face = "bold"),
-        legend.position="none") +
-  ggtitle(label = "Top genera relative abundance in coastal station") 
+        strip.background = element_rect(fill = "#FFFFFF", color = "#585858"),
+        strip.text.x = element_text(face = "bold"),
+        #legend.title = element_text(face = "bold"),
+        legend.position="right") +
+  ggtitle(label = "Top genera distribution in coastal station") 
 c
 
 library(rvg)
@@ -115,14 +143,41 @@ nylonuv0 <-  os %>% filter(polymer %in% c("Glass_fiber")) %>%
 wood0 <-  os %>% filter(polymer %in% c("Glass_fiber")) %>% 
   mutate(polymer = str_replace_all(polymer,c("Glass_fiber"="wood")))
 os2 <- os %>% filter(polymer %nin% c("Glass_fiber")) %>%
-  bind_rows (pe0, peuv0, pet0, petuv0, ps0, psuv0, nylon0, nylonuv0, wood0)
+  bind_rows (pe0, peuv0, pet0, petuv0, ps0, psuv0, nylon0, nylonuv0, wood0) %>% 
+  mutate_if(is.character,as.factor)
+
 
 x <- seq(0, 0.75, length.out = 200)
 library("ggh4x")
+breaks <- levels(os2$Genus)
+
+condition <- if_else(breaks %in% intersect(pdb,hcb) , "#bf6712", #orange
+                     (if_else(breaks %in% pdb , "#12bf67", (if_else(breaks %in% hcb , "#6712bf", "black")))))
+c <- ggplot(data = os2, mapping = aes( x = fct_relevel(timepoint.days.,  c("0","5", "10","30","45")),
+                                          y = fct_relevel(Genus,rev), fill = Genus_rep_rel_abund)) +
+  geom_tile() +
+  scale_fill_gradientn(name = "RA", colours = no_white, limits=c(0,0.75) )+ 
+  facet_grid( ~ polymer+treatment) + xlab(label = "incubation time (days)") +
+  scale_y_discrete("Genus", breaks = breaks) +
+  theme_minimal() +
+  theme(strip.placement = "outside",
+        plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(face = "bold.italic", colour = condition),
+        axis.text.x = element_text(face = "bold"),
+        strip.background = element_rect(fill = "#FFFFFF", color = "#585858"),
+        strip.text.x = element_text(face = "bold"),
+        #legend.title = element_text(face = "bold"),
+        legend.position="right") +
+  ggtitle(label = "Top genera distribution in open water station") 
+c
+
+
+
 
 osp <- ggplot(data = os2, mapping = aes(y = fct_relevel(Genus,rev), 
                                          x = fct_relevel(timepoint.days.,  c("0","5", "10","30","45")), fill = Genus_rep_rel_abund)) + 
-  geom_tile()  +scale_fill_gradientn(name = "relative abundance", colours = no_white, limits=c(0,0.75), breaks = x )+
+  geom_tile()  +scale_fill_gradientn(name = "relative abundance", colours = v )+
   facet_nested(~ polymer + treatment, scales = "free_x", space = "free_x") + xlab(label = "incubation time (days)") +
   theme_minimal() +
   theme(strip.placement = "outside",
